@@ -82,7 +82,7 @@ def urlstring2list(arr, string):
 # return True or False
 def judge_unexpected(s):
 	# s == "'example/example.html'"
-	lst = ["google", "join", "pop", "viewport", "stop", "shift"]
+	lst = ["google", "join", "pop", "viewport", "stop", "shift", "jsonp"]
 	flag = True
 	for i in lst:
 		if i in s:
@@ -92,7 +92,7 @@ def judge_unexpected(s):
 # return list(urllist)
 def fildallurl(s):
 	# type(s) == string
-	lst = re.findall('["\'(][0-9a-zA-Z./:_\-!$%&?="\'+#]+["\')]',s)
+	lst = re.findall('=["\'(][0-9a-zA-Z./:_\-!$%&?="\'+#]+["\')]',s)
 	ref = []
 	for l in lst:
 		if judge_unexpected(l) and(iwant(l) or l[-2] == "/"):
@@ -158,6 +158,8 @@ def download(arr, par):
 	if not(judge_readablefile(arr[-1])) and not(allupdate) and os.access(pathname(arr), os.F_OK):
 		updated_lst += [arr]
 		return ret
+	if arr[-1] == "" and arr[-2] == "":
+		return
 	if not(os.access(pathname(arr), os.F_OK)) or htmlupdate :
 		os.makedirs(pathname(arr[:-1]), exist_ok=True)
 		ref = get(arr)
@@ -209,6 +211,8 @@ def search_newfile_and_download(arr):
 			new_path = l
 		# new_path == ["www", "exaple", "exapmle.thml"]
 		if not new_path in updated_lst:
+			if new_path[-1] == "" and new_path[-2] == "":
+				continue
 			download(new_path, arr)
 			search_newfile_and_download(new_path)
 
