@@ -52,14 +52,25 @@ def judge_readablefile(s):
 	j = ["jpg", "png", "gif", "ico", "mp", "pdf", "js"]
 	flag = True
 	for i in j:
-		if i in s:
+		if "."+i in s:
 			flag = False
 	return flag
+
+# return True or False
+def iwant(s):
+	# s == "eample/example.html"
+	j = ["jpg", "png", "gif", "ico", "mp", "pdf", "js", "html", "css", "json"]
+	flag = False
+	for i in j:
+		if "."+i in s:
+			flag = True
+	return flag
+
 
 # return ["www", "example.html"]
 def urlstring2list(arr, string):
 	# arr == ["www", "sample.html"], str == "'www/example.html'" or "(example.com)"
-	lst = string.replace('"', '').replace("'", "").replace("(", "").replace(")", "").split("/")
+	lst = string.replace("=", "").replace('"', '').replace("'", "").replace("(", "").replace(")", "").split("/")
 	if lst[0] == "https:" and lst[2] == "d00030400.gamecity.ne.jp":
 		note(arr, lst)
 		lst = lst[4:]
@@ -81,29 +92,44 @@ def judge_unexpected(s):
 # return list(urllist)
 def fildallurl(s):
 	# type(s) == string
-	lst = re.findall('["\'(][0-9a-zA-Z./:_-]+\.[(html|jpg|png|ico|css|js|mp3|mp4|csv|pdf|gif)]+["\')]',s)
+	lst = re.findall('=["\'(][0-9a-zA-Z./:_\-!$%&?="\'+#]+["\')]',s)
 	ref = []
 	for l in lst:
-		if judge_unexpected(l):
+		if judge_unexpected(l) and(iwant(l) or l[-2] == "/"):
 			ref += [l]
 	return ref
 
 # return "./www/example/example.html" if linux/Mac else "www/example/example.html"
 def pathname(arr):
 	# arr = ["www", "example", "example.html"]
-	if ostype == "nt":
-		return ps.join(arr)
+
+	# if arr ["example.html?crc=something"]
+	# temp = ["example.html"]
+	temp = []
+	if "?" in arr[-1]:
+		temp = arr[:-1] + arr[-1].split("?")
+		temp = temp[:-1]
 	else:
-		return ps.join(["."]+arr)
+		temp = arr
+	if ostype == "nt":
+		return ps.join(temp)
+	else:
+		return ps.join(["."]+temp)
 
 #return []
 def findurlfromarr(arr):
 	# arr == ["www", "example", "example.html"]
-	if not(judge_readablefile(arr[-1])):
+	if not(judge_readablefile(arr[-1])) and arr[-1] != "":
 		return []
 	lst = []
+	# if arr == [ "example", ""]
+	temp = []
+	if arr[-1] == "":
+		temp = arr[:-1] + ["index.html"]
+	else:
+		temp = arr
 	try:
-		with open(pathname(arr), "r", encoding="utf-8") as f:
+		with open(pathname(temp), "r", encoding="utf-8") as f:
 			for line in f.readlines():
 				lst += fildallurl(line)
 	except FileNotFoundError:
@@ -112,7 +138,7 @@ def findurlfromarr(arr):
 		errlog(f"unicode decode error : {pathname(arr)}")
 	ret = []
 	for i in lst:
-		ret += [urlstring2list(arr, i)]
+		ret += [urlstring2list(temp, i)]
 	return ret
 
 # return requests.class.Responce
@@ -136,7 +162,12 @@ def download(arr, par):
 		os.makedirs(pathname(arr[:-1]), exist_ok=True)
 		ref = get(arr)
 		if ref.status_code == 200:
-			with open(pathname(arr), "wb") as f:
+			temp = []
+			if arr[-1] == "":
+				temp  =arr[:-1] + ["index.html"]
+			else:
+				temp = arr
+			with open(pathname(temp), "wb") as f:
 				f.write(ref.content)
 			# updated_setting_date[ps.join(arr)] = re.sub(" ", "", ref.headers["Last-Modified"])
 			ret = arr
@@ -161,13 +192,15 @@ def organize_lst(arr):
 # return
 def search_newfile_and_download(arr):
 	# arr == ["www", "example", "example.html"]
-	if not(judge_readablefile(arr[-1])):
+	if not(judge_readablefile(arr[-1])) and arr[-1] != "":
 		return
 	print(f"check {ps.join(arr)}")
 	lst = []
 	lst += findurlfromarr(arr)
 	for l in lst:
 		# l == [".., "example", example.html]
+		if l == []:
+			continue
 		new_path = organize_lst(arr[:-1] + l)
 		# if l == ["www", "examle", "example.html"]
 		if l[0] == "www":
@@ -303,10 +336,36 @@ def main():
 		print(f"404 NotFound (;ω;) : {pathname(news_top_html)}")
 	else:
 		print(f"please check network\nerror code : {ref.status_code}")
-	
+	get_add_news()
 	# end main
 	if errornumber != 0:
 		errlog("------------------------ errorlog end ------------------------\n")
+
+def get_add_news():
+	global updated_lst
+	if os.access(pathname(["data.txt"]), os.F_OK):
+		pass
+	else:
+		return
+	lst = []
+	nlst = []
+	with open(pathname(["data.txt"]), "r", encoding = "utf-8") as f:
+		for i in f.readlines():
+			temp = i.replace("\n", "").split("/")
+			if temp[0] == "https:" or temp[0] == "http:":
+				lst += [temp]
+	for i in lst:
+		if "http" in i[0] and not("d00030400.gamecity.ne.jp" in i[2]):
+			continue
+		if lst[2] != "":
+			nlst += [i[4:]]
+		else:
+			nlst += [i]
+	# print(nlst)
+	for i in nlst:
+		if not(i in updated_lst):
+			download(i, "data.txt")
+			search_newfile_and_download(i)
 
 # main()
 main()
