@@ -49,7 +49,7 @@ def note(par, child):
 # return True or False
 def judge_readablefile(s):
 	# arr == "example.html"
-	j = ["jpg", "png", "gif", "ico", "mp", "pdf", "js"]
+	j = ["jpg", "png", "gif", "ico", "mp", "pdf"]
 	flag = True
 	for i in j:
 		if "."+i in s:
@@ -59,7 +59,7 @@ def judge_readablefile(s):
 # return True or False
 def iwant(s):
 	# s == "eample/example.html"
-	j = ["jpg", "png", "gif", "ico", "mp", "pdf", "js", "html", "css", "json"]
+	j = ["jpg", "jpeg", "png", "gif", "ico", "mp", "pdf", "js", "html", "css", "json"]
 	flag = False
 	for i in j:
 		if "."+i in s:
@@ -92,7 +92,7 @@ def judge_unexpected(s):
 # return list(urllist)
 def fildallurl(s):
 	# type(s) == string
-	lst = re.findall('=["\'(][0-9a-zA-Z./:_\-!$%&?="\'+#]+["\')]',s)
+	lst = re.findall('["\'(][0-9a-zA-Z./:_\-!$%&?="\'+#]+["\')]',s)
 	ref = []
 	for l in lst:
 		if judge_unexpected(l) and(iwant(l) or l[-2] == "/"):
@@ -193,6 +193,8 @@ def organize_lst(arr):
 def search_newfile_and_download(arr):
 	# arr == ["www", "example", "example.html"]
 	if not(judge_readablefile(arr[-1])) and arr[-1] != "":
+		return
+	if arr[-2] == "":
 		return
 	print(f"check {ps.join(arr)}")
 	lst = []
